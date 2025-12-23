@@ -17,7 +17,7 @@ class PortalFacturacionController(http.Controller):
         order = request.env['pos.order'].sudo().search([('pos_reference', 'ilike', numero)], limit=1)
 
         if order:
-            if order.account_move and not order.account_move.factura_global:
+            if order.account_move and not order.account_move.factura_global and order.account_move.l10n_mx_edi_cfdi_uuid:
                 invoice = order.account_move
                 try:
                     share_action = invoice.sudo().with_context(
@@ -44,7 +44,7 @@ class PortalFacturacionController(http.Controller):
                     return request.redirect(fallback_url)
 
             else:
-                if order.account_move and order.account_move.factura_global:
+                if order.account_move and order.account_move.factura_global and not order.account_move.l10n_mx_edi_cfdi_uuid:
                     return request.render("portal_facturacion.portal_facturacion_no_encontrado", {
                         "numero": numero,
                     })
@@ -145,23 +145,7 @@ class PortalFacturacionController(http.Controller):
         })
     
     @http.route('/portal/facturacion/crear_factura', type='http', auth='public', methods=['POST'], csrf=False, website=True)
-    def create_invoice(
-        self,
-        order_id,
-        company_name,
-        r_f_C,
-        zip,
-        street,
-        ext,
-        int,  # (lo dejo igual como pediste)
-        cologne,
-        city,
-        state_id,
-        country_id,
-        l10n_mx_edi_usage,
-        l10n_mx_edi_fiscal_regime,
-        **kwargs
-    ):
+    def create_invoice(self, order_id, company_name, r_f_C, zip, street, ext, int, cologne, city, state_id, country_id, l10n_mx_edi_usage, l10n_mx_edi_fiscal_regime, **kwargs):
         print("\n========== INICIANDO PROCESO DE FACTURACIÓN ==========\n")
         print(f"Order ID recibido: {order_id} regimen fiscal {l10n_mx_edi_fiscal_regime}")
     
@@ -209,6 +193,7 @@ class PortalFacturacionController(http.Controller):
         # -------------------------------------------------
         if order_found.account_move:
             order_found.account_move.l10n_mx_edi_usage = l10n_mx_edi_usage
+            order_found.account_move.partner_id = partner.id
     
             if order_found.account_move.state == 'draft':
                 order_found.account_move.action_post()
